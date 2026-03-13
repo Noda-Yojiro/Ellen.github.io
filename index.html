@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PIXEL MAGIC | DOUBLE SECURITY</title>
+    <style>
+        :root {
+            --primary: #a370ff;
+            --glass: rgba(255,255,255,0.08);
+            --radius: 28px;
+            --transition: cubic-bezier(0.16, 1, 0.3, 1);
+            --new-bg: url("https://raw.githubusercontent.com/Noda-Yojiro/photos.github.io/main/Screenshot_20260313_143342_com.joym.xiongdakuaipao.jpg");
+            --default-bg: url("https://cdn.jsdelivr.net/gh/Noda-Yojiro/images@main/mmexport1739642444669.jpg");
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, sans-serif;
+            background: var(--default-bg) center/cover fixed no-repeat;
+            color: #fff; height: 100vh; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* --- 第一重验证层 --- */
+        #gate-1 {
+            position: fixed; inset: 0; z-index: 30000;
+            background: var(--new-bg) center/cover no-repeat;
+            display: flex; align-items: center; justify-content: center;
+            transition: backdrop-filter 0.5s, opacity 0.8s;
+        }
+        
+        .close-trigger {
+            position: absolute; right: 30px; top: 30px; font-size: 35px; 
+            cursor: pointer; z-index: 30005; opacity: 0.8; padding: 10px;
+            transition: 0.4s var(--transition);
+        }
+        .close-trigger.active { transform: rotate(90deg); color: #ff6464; }
+
+        /* --- 统一毛玻璃卡片 --- */
+        .glass-verify-card {
+            background: rgba(255,255,255,0.1); 
+            backdrop-filter: blur(30px) saturate(150%);
+            -webkit-backdrop-filter: blur(30px) saturate(150%);
+            padding: 50px 30px; border-radius: 40px; 
+            border: 1px solid rgba(255,255,255,0.2);
+            text-align: center; width: 85%; max-width: 340px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+            display: none; 
+            z-index: 30002;
+            transform: scale(0.9); opacity: 0;
+            transition: all 0.5s var(--transition);
+        }
+        .glass-verify-card.show { display: block; transform: scale(1); opacity: 1; }
+
+        /* --- 第二重验证层 --- */
+        #gate-2 {
+            position: fixed; inset: 0; z-index: 10000; display: none;
+            align-items: center; justify-content: center; background: #000;
+        }
+        #auth-overlay {
+            position: absolute; inset: 0; z-index: 5;
+            background: rgba(15,10,30, 0.7); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            transition: all 2.5s ease; 
+        }
+        #gate-2.clear #auth-overlay { background: rgba(0,0,0,0.1); backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); }
+
+        .auth-bg-layer { position: absolute; inset: 0; background-size: cover; background-position: center; transition: opacity 2s; opacity: 0; }
+        #bg-1 { background-image: url('https://raw.githubusercontent.com/Noda-Yojiro/images/main/IMG_20251021_000446_248(1).jpg'); opacity: 1; }
+        #bg-2 { background-image: var(--default-bg); }
+        #bg-4 { background-image: url('https://raw.githubusercontent.com/Noda-Yojiro/photos.github.io/main/IMG_20260201_050738_980(1)(1).jpg'); }
+
+        .glass-input { 
+            width: 100%; padding: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 15px; color: #fff; text-align: center; font-size: 22px; margin-bottom: 25px; 
+            letter-spacing: 4px; outline: none;
+        }
+        .action-btn { color: #bca0ff; font-size: 18px; cursor: pointer; letter-spacing: 2px; font-weight: bold; }
+
+        .eraser-tool {
+            position: absolute; right: 20px; bottom: 20px; width: 35px; height: 35px; 
+            background: rgba(255, 204, 0, 0.8); border-radius: 10px; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* --- 拼图主体样式 (保留所有魔法功能) --- */
+        body::before { content: ""; position: fixed; inset: 0; background: rgba(15,10,30,0.7); z-index: -1; transition: 0.2s; }
+        body.show-original::before { background: transparent !important; }
+        #app-launcher { position: fixed; right: 30px; bottom: 30px; width: 60px; height: 60px; background: var(--primary); border-radius: 20px; display: flex; align-items: center; justify-content: center; z-index: 1000; box-shadow: 0 8px 25px rgba(0,0,0,0.3); cursor: pointer; }
+        #app-window { position: relative; width: 90vw; max-width: 420px; background: rgba(25,25,35,0.85); backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius); padding: 24px; visibility: hidden; opacity: 0; transform: translateY(20px) scale(0.95); transition: 0.5s var(--transition); z-index: 1001; }
+        #app-window.active { visibility: visible; opacity: 1; transform: translateY(0) scale(1); }
+        #magic-solve { position: absolute; right: -8px; top: -8px; width: 36px; height: 36px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        #magic-solve.animate { animation: magicAnim 0.6s ease-out; }
+        @keyframes magicAnim { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #grid-canvas { display: grid; gap: 2px; border-radius: 12px; overflow: hidden; background: rgba(0,0,0,0.2); transform-style: preserve-3d; transition: 0.5s; }
+        .tile { background-repeat: no-repeat; cursor: pointer; transition: 0.4s cubic-bezier(0.175,0.885,0.32,1.275); will-change: transform; }
+        .tile.floating { filter: blur(1.5px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .tile.blank { background: #000 !important; opacity: 0.1 !important; }
+        .controls { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 20px; }
+        .btn { background: var(--glass); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 10px; border-radius: 12px; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+        .btn.surprise { border: 1px solid rgba(255, 126, 179, 0.3); background: linear-gradient(135deg, rgba(255,126,179,0.1), rgba(255,117,140,0.1)); }
+        .btn.primary { grid-column: span 3; background: var(--primary); font-weight: 700; font-size: 13px; }
+        #gallery-modal { position: absolute; inset: 0; background: rgba(20, 20, 30, 0.96); border-radius: var(--radius); z-index: 1010; padding: 20px; display: none; flex-direction: column; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; overflow-y: auto; margin: 15px 0; }
+        .gallery-item { aspect-ratio: 1; border-radius: 12px; background-size: cover; cursor: pointer; }
+    </style>
+</head>
+
+<body>
+
+    <div id="gate-1">
+        <div class="close-trigger" id="trigger-1" onclick="toggleFirstGate()">×</div>
+        <div id="first-verify-card" class="glass-verify-card">
+            <h2 style="font-size: 12px; margin-bottom: 30px; letter-spacing: 4px; opacity: 0.8;">ʕ•̫͡•ʕ•̫͡•ʔ•̫͡•ʔ•̫͡•ʕ•̫͡•ʔ•̫͡•ʕ•̫͡•ʕ•̫͡•ʔ</h2>
+            <input type="password" id="pwd-1" class="glass-input" placeholder="输入密码">
+            <div class="action-btn" onclick="checkGate1()">૮・ᴥ・ა૮・ᴥ・ა૮・ᴥ・ა૮・ᴥ・ა૮・ᴥ・ა</div>
+        </div>
+    </div>
+
+    <div id="gate-2">
+        <div id="bg-1" class="auth-bg-layer"></div>
+        <div id="bg-2" class="auth-bg-layer"></div>
+        <div id="bg-4" class="auth-bg-layer"></div>
+        <div id="auth-overlay"></div>
+        <div class="close-trigger" style="z-index:10;" onclick="location.reload()">×</div>
+        <div class="glass-verify-card show" id="second-card" style="background: rgba(0,0,0,0.2);">
+            <h2 style="font-size: 12px; margin-bottom: 30px; letter-spacing: 4px; opacity: 0.8;">𐇱𐇲𐇱𐇲𐇱𐇲𐇱𐇲𐇱𐇲𐇱𐇲𐇱𐇲𐇱𐇲</h2>
+            <input type="password" id="pwd-2" class="glass-input" placeholder="验证身份">
+            <div class="action-btn" onclick="checkGate2()">换装日记_INIT</div>
+            <div class="eraser-tool" onclick="eraseMist()">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="black"><path d="M16.24,3.56L21.19,8.51C21.97,9.29 21.97,10.55 21.19,11.33L14.6,17.92L18.4,21.72L16.97,23.15L13.17,19.35L11.41,21.11C10.63,21.89 9.37,21.89 8.59,21.11L3.64,16.16C2.86,15.38 2.86,14.12 3.64,13.34L11.29,5.68L16.24,3.56M12.71,7.1L4.35,15.46L8.59,19.7L12.71,15.58L12.71,7.1Z"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-launcher" onclick="toggleApp()" style="display:none;">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M3,3H11V11H3V3M13,3H21V11H13V3M3,13H11V21H3V13M13,13H21V21H13V13Z"/></svg>
+    </div>
+
+    <div id="app-window">
+        <div id="gallery-modal">
+            <div style="display:flex; justify-content:space-between; color:#bca0ff; font-size:12px; margin-bottom:10px;"><span>选择随机图片</span><span onclick="toggleGallery(false)">×</span></div>
+            <div class="gallery-grid" id="gallery-content"></div>
+            <button class="btn" onclick="fetchGalleryImages()">换一批图片</button>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div style="font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #bca0ff;">PIXEL MAGIC 🧩 (3D景深版)</div>
+            <div style="font-size:20px; opacity:0.5; cursor:pointer;" onclick="toggleApp()">×</div>
+        </div>
+        <div id="puzzle-stage" style="position:relative;">
+            <div id="grid-canvas"></div>
+            <div id="magic-solve" onclick="magicRestore()">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#a370ff"><path d="M7.5,5.6L5,7L6.4,4.5L5,2L7.5,3.4L10,2L8.6,4.5L10,7L7.5,5.6M19.5,15.4L22,14L20.6,16.5L22,19L19.5,17.6L17,19L18.4,16.5L17,14L19.5,15.4M22,2L20.6,4.5L22,7L19.5,5.6L17,7L18.4,4.5L17,2L19.5,3.4L22,2M13.34,12.78L15.78,10.34L13.66,8.22L11.22,10.66L13.34,12.78M14.37,7.29L16.71,9.63C17.1,10.02,17.1,10.65,16.71,11.04L5.04,22.71C4.65,23.1,4.02,23.1,3.63,22.71L1.29,20.37C0.9,19.98,0.9,19.35,1.29,18.96L12.96,7.29C13.35,6.9,13.98,6.9,14.37,7.29Z"/></svg>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="btn" onclick="toggleOriginalMode()">显示原图</button>
+            <button class="btn" style="color: #00f2fe;" onclick="toggleGallery(true)">随机网络</button>
+            <button class="btn" style="color: #ffd700;" onclick="restoreDefaultTheme()">默认主题</button>
+            <button class="btn surprise" style="color: #ff7eaf;" onclick="window.open('https://neonslug.com/hZ-Knl','_blank')">惊喜1</button>
+            <button class="btn surprise" style="color: #ff9a9e;" onclick="window.open('https://neonslug.com/RgMSkK','_blank')">惊喜2</button>
+            <button class="btn" style="color: #ff6464;" onclick="alert('拍照功能已锁定')">拍照拼图</button>
+            <button class="btn" onclick="setDiff(3)">3×3 (平铺)</button>
+            <button class="btn" onclick="setDiff(4)">4×4 (有景深)</button>
+            <button class="btn" onclick="document.getElementById('file-up').click()">本地图片</button>
+            <input type="file" id="file-up" hidden accept="image/*">
+            <button class="btn primary" onclick="shuffleGame()">打乱并开启</button>
+        </div>
+    </div>
+
+    <script>
+        let gridSize = 3; let currentImg = "https://cdn.jsdelivr.net/gh/Noda-Yojiro/images@main/mmexport1739642444669.jpg";
+        let tileArray = []; let isPlaying = false;
+
+        // --- 逻辑修复：切换第一重验证框 ---
+        function toggleFirstGate() {
+            const card = document.getElementById('first-verify-card');
+            const gate = document.getElementById('gate-1');
+            const trigger = document.getElementById('trigger-1');
+            
+            const isShowing = card.classList.contains('show');
+            
+            if(!isShowing) {
+                // 打开
+                card.style.display = 'block';
+                setTimeout(()=> card.classList.add('show'), 10);
+                gate.style.backdropFilter = 'blur(20px)';
+                gate.style.webkitBackdropFilter = 'blur(20px)';
+                trigger.classList.add('active');
+                setTimeout(()=>document.getElementById('pwd-1').focus(), 300);
+            } else {
+                // 关闭
+                card.classList.remove('show');
+                setTimeout(()=> card.style.display = 'none', 500);
+                gate.style.backdropFilter = 'blur(0px)';
+                gate.style.webkitBackdropFilter = 'blur(0px)';
+                trigger.classList.remove('active');
+            }
+        }
+
+        function checkGate1() {
+            if(document.getElementById('pwd-1').value === "别跑") {
+                document.getElementById('gate-1').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('gate-1').style.display = 'none';
+                    document.getElementById('gate-2').style.display = 'flex';
+                    startRotation();
+                }, 800);
+            } else { alert("暗号不对哦~"); }
+        }
+
+        function checkGate2() {
+            if(document.getElementById('pwd-2').value === "佐旖旎") {
+                document.getElementById('gate-2').style.opacity = '0';
+                document.getElementById('app-launcher').style.display = 'flex';
+                setTimeout(() => { document.getElementById('gate-2').remove(); }, 1000);
+            }
+        }
+
+        function startRotation() {
+            let idx = 0; const bgs = ['bg-1', 'bg-2', 'bg-4'];
+            setInterval(() => {
+                bgs.forEach(id => document.getElementById(id).style.opacity = '0');
+                idx = (idx + 1) % bgs.length;
+                document.getElementById(bgs[idx]).style.opacity = '1';
+            }, 5000);
+        }
+
+        function eraseMist() { document.getElementById('gate-2').classList.add('clear'); }
+
+        // --- 拼图逻辑 (全保留) ---
+        function toggleApp() {
+            const win = document.getElementById('app-window');
+            const active = win.classList.toggle('active');
+            if(active && !isPlaying) initPuzzle(false);
+        }
+
+        function initPuzzle(isShuffle) {
+            const w = document.getElementById('app-window').offsetWidth - 48;
+            const tSize = Math.floor(w / gridSize);
+            const total = tSize * gridSize;
+            const grid = document.getElementById('grid-canvas');
+            grid.style.width = grid.style.height = total + 'px';
+            grid.style.gridTemplateColumns = `repeat(${gridSize},1fr)`;
+            grid.style.gap = isShuffle ? '2px' : '0px';
+            grid.innerHTML = ''; tileArray = [];
+
+            for(let i=0; i<gridSize*gridSize; i++) {
+                const t = document.createElement('div');
+                t.className = 'tile'; t.dataset.id = i;
+                t.style.width = t.style.height = tSize + 'px';
+                t.style.backgroundImage = `url(${currentImg})`;
+                t.style.backgroundSize = `${total}px ${total}px`;
+                t.style.backgroundPosition = `${-(i%gridSize)*tSize}px ${-Math.floor(i/gridSize)*tSize}px`;
+                t.onclick = () => moveTile(i);
+                tileArray.push(t);
+            }
+
+            if(isShuffle) {
+                isPlaying = true;
+                tileArray[gridSize*gridSize-1].classList.add('blank');
+                for(let i=0; i<300; i++){
+                    const b = tileArray.findIndex(x=>x.classList.contains('blank'));
+                    const ns = getNeighbors(b);
+                    const r = ns[~~(Math.random()*ns.length)];
+                    [tileArray[b], tileArray[r]] = [tileArray[r], tileArray[b]];
+                }
+                if(gridSize === 4) tileArray.forEach(t => applyDepth(t, !t.classList.contains('blank')));
+            }
+            tileArray.forEach(t => grid.appendChild(t));
+        }
+
+        function getNeighbors(i) {
+            const r=~~(i/gridSize), c=i%gridSize, n=[];
+            if(r>0) n.push(i-gridSize); if(r<gridSize-1) n.push(i+gridSize);
+            if(c>0) n.push(i-1); if(c<gridSize-1) n.push(i+1);
+            return n;
+        }
+
+        function moveTile(id) {
+            if(!isPlaying) return;
+            const cur = tileArray.findIndex(t=>t.dataset.id==id);
+            const blank = tileArray.findIndex(t=>t.classList.contains('blank'));
+            if(Math.abs(~~(cur/gridSize)-~~(blank/gridSize)) + Math.abs(cur%gridSize-blank%gridSize) === 1) {
+                [tileArray[cur], tileArray[blank]] = [tileArray[blank], tileArray[cur]];
+                renderGrid();
+                if(gridSize === 4) {
+                    applyDepth(tileArray[blank], tileArray.indexOf(tileArray[blank]) != tileArray[blank].dataset.id);
+                    applyDepth(tileArray[cur], false);
+                }
+                if(tileArray.every((t,i)=>t.dataset.id==i)) setTimeout(()=>alert("✨ 拼图完成！"), 300);
+            }
+        }
+
+        function applyDepth(t, active) {
+            if(active) {
+                const z = Math.random()*100 + 20;
+                t.style.transform = `translateZ(${z}px) rotate(${(Math.random()-0.5)*5}deg)`;
+                t.classList.add('floating');
+            } else {
+                t.style.transform = 'translateZ(0)';
+                t.classList.remove('floating');
+            }
+        }
+
+        function magicRestore() {
+            const btn = document.getElementById('magic-solve');
+            btn.classList.add('animate');
+            setTimeout(()=>btn.classList.remove('animate'), 600);
+            isPlaying = false;
+            tileArray.sort((a,b)=>a.dataset.id-b.dataset.id);
+            tileArray.forEach(t=>{ applyDepth(t, false); t.classList.remove('blank'); });
+            document.getElementById('grid-canvas').style.gap = '0px';
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const g = document.getElementById('grid-canvas');
+            g.innerHTML = ''; tileArray.forEach(t => g.appendChild(t));
+        }
+
+        function toggleGallery(show) {
+            document.getElementById('gallery-modal').style.display = show ? 'flex' : 'none';
+            if(show) fetchGalleryImages();
+        }
+
+        function fetchGalleryImages() {
+            const content = document.getElementById('gallery-content'); content.innerHTML = '';
+            for(let i=0; i<6; i++) {
+                const url = `https://picsum.photos/seed/${Math.random()}/600/600`;
+                const item = document.createElement('div'); item.className = 'gallery-item';
+                item.style.backgroundImage = `url(${url})`;
+                item.onclick = () => { currentImg = url; document.body.style.backgroundImage = `url(${url})`; toggleGallery(false); isPlaying = false; initPuzzle(false); };
+                content.appendChild(item);
+            }
+        }
+
+        function shuffleGame() { initPuzzle(true); }
+        function setDiff(n) { gridSize = n; initPuzzle(false); }
+        function toggleOriginalMode() { document.body.classList.toggle('show-original'); }
+        function restoreDefaultTheme() { currentImg = "https://cdn.jsdelivr.net/gh/Noda-Yojiro/images@main/mmexport1739642444669.jpg"; document.body.style.backgroundImage = `url(${currentImg})`; isPlaying = false; initPuzzle(false); }
+        
+        document.getElementById('file-up').onchange = function(e) {
+            const f = e.target.files[0];
+            if(f) { const r = new FileReader(); r.onload = ()=>{ currentImg = r.result; isPlaying=false; initPuzzle(false); }; r.readAsDataURL(f); }
+        };
+
+        initPuzzle(false);
+    </script>
+</body>
+</html>
